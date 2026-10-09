@@ -77,33 +77,13 @@ export default function App() {
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col overflow-x-clip">
       {/* En-tête fixe */}
-      <header className="sticky top-0 z-10 bg-canvas/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
-          <div className="min-w-0">
-            <h1 className="text-[32px] font-bold leading-none tracking-tight">
-              {dayTitle(selected, today)}
-            </h1>
-            <div className="mt-1.5 flex items-center gap-1">
-              <p className="text-[15px] text-ink-soft">{dayLong(selected)}</p>
-              <button
-                onClick={() => setPickerOpen(true)}
-                aria-label="Ouvrir le calendrier"
-                aria-expanded={pickerOpen}
-                className="rounded-full p-1.5 text-ink-soft active:bg-line"
-              >
-                <CalendarIcon />
-              </button>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1 text-ink-soft">
-            {!isSameDay(selected, today) && (
-              <button
-                onClick={() => setSelected(today)}
-                className="mr-1 rounded-full px-3 py-1.5 text-[14px] font-medium text-accent active:opacity-60"
-              >
-                Aujourd'hui
-              </button>
-            )}
+      <header className="sticky top-0 z-10 bg-canvas pt-[env(safe-area-inset-top)]">
+        {/* Ligne 1 : titre + actions */}
+        <div className="flex items-center justify-between gap-2 px-5 pt-5">
+          <h1 className="min-w-0 flex-1 truncate text-[32px] font-bold leading-[1.15] tracking-tight">
+            {dayTitle(selected, today)}
+          </h1>
+          <div className="flex shrink-0 items-center text-ink-soft">
             <button
               onClick={refresh}
               aria-label="Actualiser"
@@ -119,6 +99,29 @@ export default function App() {
               <GearIcon />
             </button>
           </div>
+        </div>
+
+        {/* Ligne 2 : date + calendrier + retour à aujourd'hui */}
+        <div className="flex items-center justify-between gap-2 px-5 pb-2">
+          <div className="flex min-w-0 items-center gap-1">
+            <p className="min-w-0 truncate text-[15px] text-ink-soft">{dayLong(selected)}</p>
+            <button
+              onClick={() => setPickerOpen(true)}
+              aria-label="Ouvrir le calendrier"
+              aria-expanded={pickerOpen}
+              className="shrink-0 rounded-full p-1.5 text-ink-soft active:bg-line"
+            >
+              <CalendarIcon />
+            </button>
+          </div>
+          {!isSameDay(selected, today) && (
+            <button
+              onClick={() => setSelected(today)}
+              className="shrink-0 whitespace-nowrap rounded-full bg-line px-3 py-1 text-[13px] font-medium text-accent active:opacity-60"
+            >
+              Aujourd'hui
+            </button>
+          )}
         </div>
 
         <WeekStrip
@@ -138,7 +141,7 @@ export default function App() {
           <div className="relative mx-auto h-full max-w-md">
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute left-5 top-[calc(env(safe-area-inset-top)+6rem)]"
+              className="absolute left-5 top-[calc(env(safe-area-inset-top)+6.5rem)]"
             >
               <DatePicker
                 selected={selected}
