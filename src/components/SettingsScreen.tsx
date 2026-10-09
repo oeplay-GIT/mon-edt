@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { ThemePref } from '../lib/theme';
+import VersionInfo from './VersionInfo'
 
 interface Props {
   initialUrl: string;
@@ -125,6 +126,7 @@ export default function SettingsScreen({
         Ce lien est personnel : il est stocké uniquement sur cet appareil et n'est utilisé que pour
         télécharger votre planning.
       </p>
+      <VersionInfo />
     </main>
   );
 }
