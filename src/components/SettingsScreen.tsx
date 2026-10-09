@@ -43,7 +43,7 @@ export default function SettingsScreen({
   };
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col px-6 pb-10 pt-[max(3rem,env(safe-area-inset-top))]">
+    <main className="mx-auto flex min-h-full w-full max-w-md flex-col overflow-x-clip px-6 pb-10 pt-[max(3rem,env(safe-area-inset-top))]">
       <h1 className="text-[32px] font-bold leading-tight tracking-tight">
         {onCancel ? 'Réglages' : 'Bienvenue'}
       </h1>
@@ -55,6 +55,7 @@ export default function SettingsScreen({
         <label htmlFor="ics-url" className="text-[13px] font-medium text-ink-soft">
           URL de l'emploi du temps
         </label>
+        {/* 16 px minimum : en dessous, iPhone zoome tout seul sur le champ */}
         <textarea
           id="ics-url"
           value={value}
@@ -65,7 +66,7 @@ export default function SettingsScreen({
           autoCapitalize="off"
           autoCorrect="off"
           placeholder="https://ade-…/jsp/custom/modules/plannings/direct_cal.jsp?…"
-          className={`mt-2 w-full resize-none rounded-xl border bg-surface p-3.5 text-[15px] leading-snug text-ink outline-none transition-colors focus:border-accent ${
+          className={`mt-2 w-full resize-none rounded-xl border bg-surface p-3.5 text-[16px] leading-snug text-ink outline-none transition-colors [overflow-wrap:anywhere] focus:border-accent ${
             invalid ? 'border-red-400' : 'border-line'
           }`}
         />
@@ -95,7 +96,11 @@ export default function SettingsScreen({
       {/* Apparence : le changement est immédiat, sans bouton Enregistrer */}
       <section className="mt-10">
         <h2 className="text-[13px] font-medium text-ink-soft">Apparence</h2>
-        <div role="radiogroup" aria-label="Apparence" className="mt-2 grid grid-cols-3 rounded-xl bg-line p-1">
+        <div
+          role="radiogroup"
+          aria-label="Apparence"
+          className="mt-2 grid grid-cols-3 rounded-xl bg-line p-1"
+        >
           {THEME_OPTIONS.map((o) => {
             const active = theme === o.value;
             return (

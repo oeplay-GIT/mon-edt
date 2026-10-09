@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DatePicker from './components/DatePicker';
 import DayView from './components/DayView';
 import SettingsScreen from './components/SettingsScreen';
@@ -42,21 +42,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [pickerOpen]);
 
-  // Navigation par glissement horizontal (téléphone)
-  const touch = useRef<{ x: number; y: number } | null>(null);
-  const onTouchStart = (e: TouchEvent) => {
-    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  };
-  const onTouchEnd = (e: TouchEvent) => {
-    if (!touch.current) return;
-    const dx = e.changedTouches[0].clientX - touch.current.x;
-    const dy = e.changedTouches[0].clientY - touch.current.y;
-    touch.current = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      setSelected((d) => addDays(d, dx < 0 ? 1 : -1));
-    }
-  };
-
   const handleSave = (newUrl: string) => {
     if (newUrl !== url) {
       clearCache();
@@ -90,15 +75,11 @@ export default function App() {
   const nextDate = nextCourse ? startOfDay(nextCourse.start) : null;
 
   return (
-    <div
-      className="mx-auto flex min-h-full max-w-md flex-col"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
+    <div className="mx-auto flex min-h-full w-full max-w-md flex-col overflow-x-clip">
       {/* En-tête fixe */}
       <header className="sticky top-0 z-10 bg-canvas/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="flex items-start justify-between px-5 pb-3 pt-5">
-          <div>
+        <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
+          <div className="min-w-0">
             <h1 className="text-[32px] font-bold leading-none tracking-tight">
               {dayTitle(selected, today)}
             </h1>
@@ -114,7 +95,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-ink-soft">
+          <div className="flex shrink-0 items-center gap-1 text-ink-soft">
             {!isSameDay(selected, today) && (
               <button
                 onClick={() => setSelected(today)}
@@ -176,13 +157,13 @@ export default function App() {
 
       {/* Bandeau d'erreur discret */}
       {status === 'error' && (
-        <p className="mx-5 mt-4 rounded-xl bg-surface px-4 py-3 text-[14px] leading-snug text-ink-soft">
+        <p className="mx-5 mt-4 rounded-xl bg-surface px-4 py-3 text-[14px] leading-snug text-ink-soft [overflow-wrap:anywhere]">
           Mise à jour impossible : {error}
           {updatedAt && ` Dernière synchro : ${timeAgo(updatedAt)}.`}
         </p>
       )}
 
-      <main className="flex-1 pt-5">
+      <main className="min-w-0 flex-1 pt-5">
         <DayView
           date={selected}
           courses={dayCourses}

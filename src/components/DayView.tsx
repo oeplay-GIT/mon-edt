@@ -44,7 +44,7 @@ export default function DayView({ date, courses, now, nextDate, onGoToNext }: Pr
   }
 
   return (
-    <div className="space-y-3 px-5 pb-10">
+    <div className="min-w-0 space-y-3 px-5 pb-10">
       {courses.map((course, i) => {
         const prev = courses[i - 1];
         const gap = prev ? minutesBetween(prev.end, course.start) : 0;

@@ -4,6 +4,7 @@ export const startOfDay = (d: Date) => {
   return x;
 };
 
+/** Ajoute (ou retire, si n est négatif) exactement n jours. */
 export const addDays = (d: Date, n: number) => {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
@@ -54,6 +55,7 @@ export const weekdayInitial = (d: Date) =>
 
 export const timeAgo = (d: Date) =>
   d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
 /**
  * Toutes les dates à afficher pour la grille d'un mois (lundi en premier).
  * Inclut les jours des mois voisins pour compléter les semaines.

@@ -10,7 +10,10 @@ interface Props {
   state: CourseState;
 }
 
-/** Une ligne de la timeline : horaires à gauche, carte pastel à droite. */
+/**
+ * Une ligne de la timeline : horaires à gauche, carte pastel à droite.
+ * Tous les textes passent à la ligne si nécessaire : la carte ne dépasse jamais de l'écran.
+ */
 export default function CourseCard({ course, state }: Props) {
   const minutes = minutesBetween(course.start, course.end);
   // La hauteur reflète (légèrement) la durée du cours.
@@ -28,9 +31,9 @@ export default function CourseCard({ course, state }: Props) {
         </div>
       </div>
 
-      {/* Carte : les couleurs viennent des variables --bg / --fg / --bar (clair ou sombre) */}
+      {/* Carte : min-w-0 = elle a le droit de rétrécir (sinon un long mot l'élargit) */}
       <article
-        className="tone flex-1 rounded-2xl p-4"
+        className="tone min-w-0 flex-1 overflow-hidden rounded-2xl p-4"
         style={{
           ...toneVars(course.colorKey),
           background: 'var(--bg)',
@@ -40,10 +43,12 @@ export default function CourseCard({ course, state }: Props) {
         }}
       >
         <header className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-[17px] font-semibold leading-tight">{course.title}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-2 text-[17px] font-semibold leading-tight [overflow-wrap:anywhere]">
+              {course.title}
+            </h3>
             {course.subtitle && (
-              <p className="mt-0.5 line-clamp-2 text-[14px] leading-snug opacity-80">
+              <p className="mt-0.5 line-clamp-3 text-[14px] leading-snug opacity-80 [overflow-wrap:anywhere]">
                 {course.subtitle}
               </p>
             )}
@@ -60,22 +65,22 @@ export default function CourseCard({ course, state }: Props) {
 
         <dl className="mt-3 space-y-1.5 text-[14px]">
           {course.room && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
               <dt className="sr-only">Salle</dt>
-              <PinIcon className="shrink-0 opacity-70" />
-              <dd className="truncate">{course.room}</dd>
+              <PinIcon className="mt-0.5 shrink-0 opacity-70" />
+              <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.room}</dd>
             </div>
           )}
           {course.teacher && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
               <dt className="sr-only">Enseignant</dt>
-              <PersonIcon className="shrink-0 opacity-70" />
-              <dd className="truncate">{course.teacher}</dd>
+              <PersonIcon className="mt-0.5 shrink-0 opacity-70" />
+              <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.teacher}</dd>
             </div>
           )}
         </dl>
 
-        <p className="mt-3 text-[12px] opacity-60">
+        <p className="mt-3 text-[12px] opacity-60 [overflow-wrap:anywhere]">
           {formatTime(course.start)} – {formatTime(course.end)} · {formatDuration(minutes)}
           {course.groups.length > 0 && ` · ${course.groups.join(', ')}`}
         </p>

@@ -6,11 +6,11 @@ interface Props {
   today: Date;
   daysWithCourses: Set<string>;
   onSelect: (d: Date) => void;
-  /** -1 = semaine précédente, 1 = semaine suivante */
+  /** -1 = 7 jours en arrière, 1 = 7 jours en avant */
   onShiftWeek: (direction: -1 | 1) => void;
 }
 
-/** Bandeau des 7 jours (lundi → dimanche) avec flèches pour changer de semaine. */
+/** Bandeau des 7 jours (lundi → dimanche) avec flèches pour sauter de 7 jours. */
 export default function WeekStrip({
   selected,
   today,
@@ -31,7 +31,7 @@ export default function WeekStrip({
         <ChevronLeftIcon />
       </button>
 
-      <div className="grid flex-1 grid-cols-7">
+      <div className="grid min-w-0 flex-1 grid-cols-7">
         {days.map((d) => {
           const isSelected = isSameDay(d, selected);
           const isToday = isSameDay(d, today);
