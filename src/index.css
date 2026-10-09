@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* Permet d'écrire dark:xxx dans les classes Tailwind (basé sur la classe .dark) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Couleurs du thème CLAIR (par défaut) ── */
+:root {
+  --canvas: #f5f5f7;   /* fond de page */
+  --surface: #ffffff;  /* cartes, champs, calendrier */
+  --ink: #1d1d1f;      /* texte principal */
+  --ink-soft: #6e6e73; /* texte secondaire */
+  --line: #e5e5ea;     /* filets */
+  --accent: #2f6fdb;
+}
+
+/* ── Couleurs du thème SOMBRE ── */
+.dark {
+  --canvas: #000000;
+  --surface: #1c1c1e;
+  --ink: #f5f5f7;
+  --ink-soft: #98989d;
+  --line: #2c2c2e;
+  --accent: #4a89f0;
+}
+
+/* Les utilitaires Tailwind (bg-canvas, text-ink…) lisent les variables ci-dessus */
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, -apple-system, "SF Pro Text",
+    system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+}
+
+/* ── Couleurs des cartes de cours (variables posées par CourseCard) ── */
+.tone {
+  --bg: var(--tone-bg);
+  --bar: var(--tone-bar);
+  --fg: var(--tone-text);
+  --badge-fg: var(--tone-text);
+}
+.dark .tone {
+  --bg: var(--tone-bg-dark);
+  --bar: var(--tone-bar-dark);
+  --fg: var(--tone-text-dark);
+  --badge-fg: #0b0b0c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
