@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import DatePicker from './components/DatePicker';
+import DayNote from './components/DayNote';
 import DayView from './components/DayView';
 import SettingsScreen from './components/SettingsScreen';
 import WeekStrip from './components/WeekStrip';
 import { CalendarIcon, GearIcon, RefreshIcon } from './components/Icons';
+import { useNotes } from './hooks/useNotes';
 import { useNow } from './hooks/useNow';
 import { useSchedule } from './hooks/useSchedule';
 import { useTheme } from './hooks/useTheme';
 import { addDays, dayKey, dayLong, dayTitle, isSameDay, startOfDay, timeAgo } from './lib/date';
+import { courseLabel, loadExamWords, makeExamDetector } from './lib/exam';
 import { clearCache, loadUrl, saveUrl } from './lib/storage';
 
 export default function App() {
@@ -18,6 +21,7 @@ export default function App() {
   const now = useNow();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const { courses, updatedAt, status, error, refresh, reset } = useSchedule(url);
+  const { notes, setNote, noteDays } = useNotes();
 
   // Index des cours par jour, calculé une seule fois par chargement.
   const byDay = useMemo(() => {
@@ -28,6 +32,17 @@ export default function App() {
     }
     return map;
   }, [courses]);
+
+  // Détecteur d'examens : relu quand on revient des réglages (liste de mots modifiable)
+  const isExam = useMemo(() => makeExamDetector(loadExamWords()), [showSettings]);
+
+  const examDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of courses) {
+      if (isExam(c)) set.add(dayKey(c.start));
+    }
+    return set;
+  }, [courses, isExam]);
 
   // Navigation au clavier (← → = jour, Maj + ← → = semaine) pour l'usage sur PC
   useEffect(() => {
@@ -66,7 +81,9 @@ export default function App() {
   }
 
   const today = startOfDay(now);
-  const dayCourses = byDay.get(dayKey(selected)) ?? [];
+  const selectedKey = dayKey(selected);
+  const dayCourses = byDay.get(selectedKey) ?? [];
+  const dayExams = dayCourses.filter((c) => isExam(c));
   const daysWithCourses = new Set(byDay.keys());
 
   // Premier cours situé après le jour sélectionné
@@ -128,6 +145,8 @@ export default function App() {
           selected={selected}
           today={today}
           daysWithCourses={daysWithCourses}
+          examDays={examDays}
+          noteDays={noteDays}
           onSelect={setSelected}
           onShiftWeek={(dir) => setSelected((d) => addDays(d, dir * 7))}
         />
@@ -147,6 +166,8 @@ export default function App() {
                 selected={selected}
                 today={today}
                 daysWithCourses={daysWithCourses}
+                examDays={examDays}
+                noteDays={noteDays}
                 onSelect={(d) => {
                   setSelected(startOfDay(d));
                   setPickerOpen(false);
@@ -167,6 +188,31 @@ export default function App() {
       )}
 
       <main className="min-w-0 flex-1 pt-5">
+        <div className="space-y-3 px-5 pb-4">
+          {dayExams.length > 0 && (
+            <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
+              <p className="text-[12px] font-semibold uppercase tracking-wide">
+                {dayExams.length > 1 ? 'Examens ce jour' : 'Examen ce jour'}
+              </p>
+              {dayExams.map((c, i) => (
+                <p
+                  key={c.start.toISOString() + i}
+                  className="mt-0.5 text-[15px] leading-snug [overflow-wrap:anywhere]"
+                >
+                  {c.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  {courseLabel(c) ? ` · ${courseLabel(c)}` : ''}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <DayNote
+            key={selectedKey}
+            value={notes[selectedKey] ?? ''}
+            onChange={(text) => setNote(selectedKey, text)}
+          />
+        </div>
+
         <DayView
           date={selected}
           courses={dayCourses}

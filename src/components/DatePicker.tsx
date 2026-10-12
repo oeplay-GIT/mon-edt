@@ -1,75 +1,88 @@
 import { useEffect, useState } from 'react';
-import { dayKey, isSameDay, monthGrid, monthLabel } from '../lib/date';
+import { addDays, dayKey, isSameDay, startOfWeek } from '../lib/date';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 interface Props {
   selected: Date;
   today: Date;
-  /** Clés « AAAA-MM-JJ » des jours ayant au moins un cours (affiche un point). */
   daysWithCourses: Set<string>;
+  examDays?: Set<string>;
+  noteDays?: Set<string>;
   onSelect: (d: Date) => void;
   onClose: () => void;
 }
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-/** Petit calendrier mensuel, sans librairie. Se ferme avec Échap. */
-export default function DatePicker({ selected, today, daysWithCourses, onSelect, onClose }: Props) {
-  // Mois affiché (indépendant du jour sélectionné tant qu'on n'a pas cliqué)
-  const [month, setMonth] = useState(() => new Date(selected.getFullYear(), selected.getMonth(), 1));
+export default function DatePicker({
+  selected,
+  today,
+  daysWithCourses,
+  examDays,
+  noteDays,
+  onSelect,
+  onClose,
+}: Props) {
+  const [view, setView] = useState({ year: selected.getFullYear(), month: selected.getMonth() });
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const shiftMonth = (delta: number) =>
-    setMonth((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1));
+  const shift = (delta: number) =>
+    setView((v) => {
+      const d = new Date(v.year, v.month + delta, 1);
+      return { year: d.getFullYear(), month: d.getMonth() };
+    });
 
-  const days = monthGrid(month);
+  const first = new Date(view.year, view.month, 1);
+  const start = startOfWeek(first);
+  let cells = Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  const sixthWeekStart = cells[35];
+  if (sixthWeekStart && sixthWeekStart.getMonth() !== view.month) {
+    cells = cells.slice(0, 35);
+  }
+
+  const label = first.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   return (
-    <div
-      role="dialog"
-      aria-label="Choisir une date"
-      className="w-[304px] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-line bg-surface p-3 shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-none"
-    >
-      {/* Navigation de mois */}
-      <div className="flex items-center justify-between pb-2">
+    <div className="w-[19rem] max-w-[calc(100vw-2.5rem)] rounded-3xl bg-surface p-4 shadow-xl ring-1 ring-line">
+      <div className="mb-2 flex items-center justify-between">
         <button
-          onClick={() => shiftMonth(-1)}
+          onClick={() => shift(-1)}
           aria-label="Mois précédent"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft active:bg-line"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft active:bg-line"
         >
           <ChevronLeftIcon />
         </button>
-        <span className="text-[15px] font-semibold">{monthLabel(month)}</span>
+        <span className="text-[16px] font-semibold capitalize text-ink">{label}</span>
         <button
-          onClick={() => shiftMonth(1)}
+          onClick={() => shift(1)}
           aria-label="Mois suivant"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft active:bg-line"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft active:bg-line"
         >
           <ChevronRightIcon />
         </button>
       </div>
 
-      {/* Initiales des jours */}
-      <div className="grid grid-cols-7 pb-1">
+      <div className="grid grid-cols-7">
         {WEEKDAYS.map((w, i) => (
-          <span key={i} className="text-center text-[11px] font-medium text-ink-soft">
+          <span key={i} className="py-1 text-center text-[11px] font-medium text-ink-soft">
             {w}
           </span>
         ))}
-      </div>
-
-      {/* Grille du mois */}
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {days.map((d) => {
-          const inMonth = d.getMonth() === month.getMonth();
+        {cells.map((d) => {
+          const key = dayKey(d);
+          const inMonth = d.getMonth() === view.month;
           const isSelected = isSameDay(d, selected);
           const isToday = isSameDay(d, today);
-          const hasCourses = daysWithCourses.has(dayKey(d));
+          const hasExam = examDays?.has(key) ?? false;
+          const hasCourses = daysWithCourses.has(key);
+          const hasNote = noteDays?.has(key) ?? false;
           return (
             <button
               key={d.toISOString()}
@@ -79,37 +92,33 @@ export default function DatePicker({ selected, today, daysWithCourses, onSelect,
                 day: 'numeric',
                 month: 'long',
               })}
-              aria-pressed={isSelected}
-              className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-full text-[15px] tabular-nums transition-colors ${
-                isSelected
-                  ? 'bg-ink font-semibold text-canvas'
-                  : isToday
-                    ? 'font-semibold text-accent active:bg-line'
-                    : inMonth
-                      ? 'text-ink active:bg-line'
-                      : 'text-ink-soft/50 active:bg-line'
+              className={`flex h-11 flex-col items-center justify-center gap-0.5 outline-none ${
+                inMonth ? '' : 'opacity-40'
               }`}
             >
-              {d.getDate()}
-              {hasCourses && (
-                <span
-                  className={`absolute bottom-0.5 h-1 w-1 rounded-full ${
-                    isSelected ? 'bg-canvas' : 'bg-accent'
-                  }`}
-                />
-              )}
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-[15px] tabular-nums ${
+                  isSelected
+                    ? 'bg-ink font-semibold text-canvas'
+                    : isToday
+                      ? 'font-semibold text-accent'
+                      : 'text-ink'
+                }`}
+              >
+                {d.getDate()}
+              </span>
+              <span className="flex h-1 items-center gap-0.5">
+                {(hasExam || hasCourses) && (
+                  <span
+                    className={`h-1 w-1 rounded-full ${hasExam ? 'bg-red-500' : 'bg-accent'}`}
+                  />
+                )}
+                {hasNote && <span className="h-1 w-1 rounded-full bg-amber-400" />}
+              </span>
             </button>
           );
         })}
       </div>
-
-      {/* Raccourci */}
-      <button
-        onClick={() => onSelect(today)}
-        className="mt-2 w-full rounded-xl py-2 text-[14px] font-medium text-accent active:opacity-60"
-      >
-        Aujourd'hui
-      </button>
     </div>
   );
 }

@@ -5,6 +5,10 @@ interface Props {
   selected: Date;
   today: Date;
   daysWithCourses: Set<string>;
+  /** Jours contenant au moins un examen (pastille rouge) */
+  examDays?: Set<string>;
+  /** Jours ayant une note (pastille ambre) */
+  noteDays?: Set<string>;
   onSelect: (d: Date) => void;
   /** -1 = 7 jours en arrière, 1 = 7 jours en avant */
   onShiftWeek: (direction: -1 | 1) => void;
@@ -15,6 +19,8 @@ export default function WeekStrip({
   selected,
   today,
   daysWithCourses,
+  examDays,
+  noteDays,
   onSelect,
   onShiftWeek,
 }: Props) {
@@ -33,8 +39,12 @@ export default function WeekStrip({
 
       <div className="grid min-w-0 flex-1 grid-cols-7">
         {days.map((d) => {
+          const key = dayKey(d);
           const isSelected = isSameDay(d, selected);
           const isToday = isSameDay(d, today);
+          const hasExam = examDays?.has(key) ?? false;
+          const hasCourses = daysWithCourses.has(key);
+          const hasNote = noteDays?.has(key) ?? false;
           return (
             <button
               key={d.toISOString()}
@@ -61,11 +71,14 @@ export default function WeekStrip({
               >
                 {d.getDate()}
               </span>
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  daysWithCourses.has(dayKey(d)) ? 'bg-accent' : 'bg-transparent'
-                }`}
-              />
+              <span className="flex h-1.5 items-center gap-1">
+                {(hasExam || hasCourses) && (
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${hasExam ? 'bg-red-500' : 'bg-accent'}`}
+                  />
+                )}
+                {hasNote && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+              </span>
             </button>
           );
         })}
