@@ -3,40 +3,46 @@ import type { Course } from '../types';
 import { formatDuration, isSameDay, minutesBetween } from '../lib/date';
 import CourseCard, { type CourseState } from './CourseCard';
 
-interface Props {
+type Props = {
   date: Date;
-  courses: Course[]; // cours déjà filtrés pour ce jour, triés par heure
+  courses: Course[];
   now: Date;
-  /** Prochain jour qui contient des cours (null s'il n'y en a plus). */
   nextDate: Date | null;
+  isEval: (course: Course) => boolean;
   onGoToNext: () => void;
-}
+};
 
-const MIN_GAP = 30; // on n'affiche une pause qu'à partir de 30 min
+const MIN_GAP = 30;
 
 function stateOf(course: Course, date: Date, now: Date): CourseState {
-  if (!isSameDay(date, now)) return 'upcoming';
-  if (now >= course.start && now < course.end) return 'live';
-  return now >= course.end ? 'past' : 'upcoming';
+  if (!isSameDay(date, now)) return date < now ? 'past' : 'upcoming';
+  if (now >= course.end) return 'past';
+  if (now >= course.start) return 'live';
+  return 'upcoming';
 }
 
-export default function DayView({ date, courses, now, nextDate, onGoToNext }: Props) {
+export default function DayView({ date, courses, now, nextDate, isEval, onGoToNext }: Props) {
   if (courses.length === 0) {
-    const label = nextDate
-      ? nextDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-      : null;
     return (
       <div className="flex flex-col items-center px-8 py-24 text-center">
-        <p className="text-[17px] font-semibold">Aucun cours</p>
-        <p className="mt-1 text-[15px] text-ink-soft">
-          {nextDate ? 'Profitez de cette journée libre.' : 'Aucun cours à venir dans ton planning.'}
+        <p className="text-[20px] font-semibold text-ink">Aucun cours</p>
+        <p className="mt-1.5 text-[15px] text-ink-soft">
+          {nextDate
+            ? 'Profitez de cette journée libre.'
+            : 'Aucun cours à venir dans ton planning.'}
         </p>
-        {label && (
+        {nextDate && (
           <button
+            type="button"
             onClick={onGoToNext}
             className="mt-6 rounded-full bg-surface px-5 py-2.5 text-[15px] font-medium text-accent active:opacity-60"
           >
-            Prochain cours : {label}
+            Prochain cours :{' '}
+            {nextDate.toLocaleDateString('fr-FR', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
           </button>
         )}
       </div>
@@ -55,7 +61,11 @@ export default function DayView({ date, courses, now, nextDate, onGoToNext }: Pr
                 Pause · {formatDuration(gap)}
               </p>
             )}
-            <CourseCard course={course} state={stateOf(course, date, now)} />
+            <CourseCard
+              course={course}
+              state={stateOf(course, date, now)}
+              isEval={isEval(course)}
+            />
           </Fragment>
         );
       })}

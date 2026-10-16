@@ -5,23 +5,18 @@ import { PersonIcon, PinIcon } from './Icons';
 
 export type CourseState = 'upcoming' | 'live' | 'past';
 
-interface Props {
+type Props = {
   course: Course;
   state: CourseState;
-}
+  isEval?: boolean;
+};
 
-/**
- * Une ligne de la timeline : horaires à gauche, carte pastel à droite.
- * Tous les textes passent à la ligne si nécessaire : la carte ne dépasse jamais de l'écran.
- */
-export default function CourseCard({ course, state }: Props) {
+export default function CourseCard({ course, state, isEval = false }: Props) {
   const minutes = minutesBetween(course.start, course.end);
-  // La hauteur reflète (légèrement) la durée du cours.
   const minHeight = Math.max(92, Math.round(minutes * 0.95));
 
   return (
     <div className={`flex gap-4 ${state === 'past' ? 'opacity-55' : ''}`}>
-      {/* Colonne horaires */}
       <div className="w-12 shrink-0 pt-4 text-right tabular-nums">
         <div className="text-[15px] font-semibold leading-none text-ink">
           {formatTime(course.start)}
@@ -31,7 +26,6 @@ export default function CourseCard({ course, state }: Props) {
         </div>
       </div>
 
-      {/* Carte : min-w-0 = elle a le droit de rétrécir (sinon un long mot l'élargit) */}
       <article
         className="tone min-w-0 flex-1 overflow-hidden rounded-2xl p-4"
         style={{
@@ -53,34 +47,46 @@ export default function CourseCard({ course, state }: Props) {
               </p>
             )}
           </div>
-          {state === 'live' && (
-            <span
-              className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-              style={{ background: 'var(--bar)', color: 'var(--badge-fg)' }}
-            >
-              En cours
-            </span>
+
+          {(state === 'live' || isEval) && (
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              {state === 'live' && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ background: 'var(--bar)', color: 'var(--badge-fg)' }}
+                >
+                  En cours
+                </span>
+              )}
+              {isEval && (
+                <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
+                  Évaluation
+                </span>
+              )}
+            </div>
           )}
         </header>
 
-        <dl className="mt-3 space-y-1.5 text-[14px]">
-          {course.room && (
-            <div className="flex items-start gap-2">
-              <dt className="sr-only">Salle</dt>
-              <PinIcon className="mt-0.5 shrink-0 opacity-70" />
-              <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.room}</dd>
-            </div>
-          )}
-          {course.teacher && (
-            <div className="flex items-start gap-2">
-              <dt className="sr-only">Enseignant</dt>
-              <PersonIcon className="mt-0.5 shrink-0 opacity-70" />
-              <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.teacher}</dd>
-            </div>
-          )}
-        </dl>
+        {(course.room || course.teacher) && (
+          <dl className="mt-3 space-y-1.5 text-[14px]">
+            {course.room && (
+              <div className="flex items-start gap-2">
+                <dt className="sr-only">Salle</dt>
+                <PinIcon className="mt-0.5 shrink-0 opacity-70" />
+                <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.room}</dd>
+              </div>
+            )}
+            {course.teacher && (
+              <div className="flex items-start gap-2">
+                <dt className="sr-only">Enseignant</dt>
+                <PersonIcon className="mt-0.5 shrink-0 opacity-70" />
+                <dd className="min-w-0 flex-1 [overflow-wrap:anywhere]">{course.teacher}</dd>
+              </div>
+            )}
+          </dl>
+        )}
 
-        <p className="mt-3 text-[12px] opacity-60 [overflow-wrap:anywhere]">
+        <p className="mt-3 text-[12px] opacity-60">
           {formatTime(course.start)} – {formatTime(course.end)} · {formatDuration(minutes)}
           {course.groups.length > 0 && ` · ${course.groups.join(', ')}`}
         </p>

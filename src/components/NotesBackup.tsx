@@ -1,25 +1,44 @@
 import { useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { loadNotes, sanitizeNotes, saveNotes } from '../lib/notes'
+import { sanitizeSettings } from '../lib/rev/settings'
+import { useRevSettings } from '../lib/rev/useRevSettings'
 
-function buildBackup(): string {
-  return JSON.stringify({ app: 'mon-edt', version: 1, notes: loadNotes() }, null, 2)
-}
+const btn =
+  'rounded-full border border-line px-3.5 py-1.5 text-[13px] font-medium text-ink transition active:opacity-60 disabled:opacity-40'
 
 function parseBackup(text: string) {
-  const data: unknown = JSON.parse(text)
-  const source =
-    data && typeof data === 'object' && 'notes' in data
-      ? (data as { notes: unknown }).notes
-      : data
-  return sanitizeNotes(source)
+  const data = JSON.parse(text)
+  const obj = data && typeof data === 'object' ? data : {}
+  const hasWrapper = 'notes' in obj || 'rev' in obj || obj.app === 'mon-edt'
+  const rawNotes = 'notes' in obj ? obj.notes : hasWrapper ? {} : obj
+  const notes = sanitizeNotes(rawNotes)
+  const rev = obj.rev && typeof obj.rev === 'object' ? sanitizeSettings(obj.rev) : null
+  return { notes, rev }
+}
+
+function summary(count: number, hasRev: boolean): string {
+  const parts: string[] = []
+  if (count > 0) parts.push(count === 1 ? '1 note' : `${count} notes`)
+  if (hasRev) parts.push('réglages de révision')
+  return `Importé : ${parts.join(' et ')}.`
 }
 
 export default function NotesBackup() {
+  const { settings, replace } = useRevSettings()
   const [msg, setMsg] = useState('')
   const [restoring, setRestoring] = useState(false)
   const [pasted, setPasted] = useState('')
 
-  const copy = async () => {
+  function buildBackup(): string {
+    return JSON.stringify(
+      { app: 'mon-edt', version: 2, notes: loadNotes(), rev: settings },
+      null,
+      2,
+    )
+  }
+
+  async function copy() {
     try {
       await navigator.clipboard.writeText(buildBackup())
       setMsg('Sauvegarde copiée. Colle-la dans une note ou un message à toi-même.')
@@ -28,58 +47,70 @@ export default function NotesBackup() {
     }
   }
 
-  const download = () => {
+  function download() {
     const blob = new Blob([buildBackup()], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'mon-edt-notes.json'
+    a.download = 'mon-edt-sauvegarde.json'
     document.body.appendChild(a)
     a.click()
     a.remove()
-    URL.revokeObjectURL(url)
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     setMsg('Fichier téléchargé.')
   }
 
-  const importText = (text: string) => {
+  function importText(text: string) {
     try {
-      const imported = parseBackup(text)
-      const count = Object.keys(imported).length
-      if (count === 0) {
-        setMsg('Aucune note trouvée dans ce contenu.')
+      const { notes, rev } = parseBackup(text)
+      const count = Object.keys(notes).length
+      if (count === 0 && !rev) {
+        setMsg('Aucune note ni réglage trouvé dans ce contenu.')
         return
       }
-      saveNotes({ ...loadNotes(), ...imported })
-      setMsg(count + ' note(s) importée(s). Rechargement…')
+      if (count > 0) saveNotes({ ...loadNotes(), ...notes })
+      if (rev) replace(rev)
+      setMsg(`${summary(count, rev !== null)} Rechargement…`)
       window.setTimeout(() => window.location.reload(), 900)
     } catch {
       setMsg('Contenu invalide.')
     }
   }
 
-  const onFile = async (file: File | undefined) => {
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
-    importText(await file.text())
+    try {
+      importText(await file.text())
+    } catch {
+      setMsg('Lecture du fichier impossible.')
+    }
   }
-
-  const btn =
-    'rounded-full border border-line px-3.5 py-1.5 text-[13px] font-medium text-ink active:opacity-60'
 
   return (
     <section className="rounded-2xl bg-surface p-4">
-      <h2 className="text-[15px] font-semibold text-ink">Sauvegarde des notes</h2>
-      <p className="mt-1 text-[13px] leading-snug text-ink-soft">
-        Tes notes sont stockées uniquement sur cet appareil. Sauvegarde-les avant de
-        réinstaller l'app.
+      <h2 className="text-[15px] font-semibold text-ink">Sauvegarde</h2>
+      <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+        Tes notes et tes réglages de révision sont stockés uniquement sur cet appareil.
+        Sauvegarde-les avant de réinstaller l’app.
       </p>
+
       <div className="mt-3 flex flex-wrap gap-2">
-        <button onClick={() => void copy()} className={btn}>
+        <button type="button" onClick={copy} className={btn}>
           Copier
         </button>
-        <button onClick={download} className={btn}>
+        <button type="button" onClick={download} className={btn}>
           Télécharger
         </button>
-        <button onClick={() => setRestoring((v) => !v)} className={btn}>
+        <button
+          type="button"
+          onClick={() => {
+            setRestoring((r) => !r)
+            setMsg('')
+          }}
+          className={btn}
+        >
           Restaurer
         </button>
       </div>
@@ -87,30 +118,35 @@ export default function NotesBackup() {
       {restoring && (
         <div className="mt-3 space-y-2">
           <textarea
-            value={pasted}
             rows={4}
-            placeholder="Colle ici la sauvegarde copiée…"
+            value={pasted}
             onChange={(e) => setPasted(e.target.value)}
-            className="block w-full resize-none rounded-xl border border-line bg-transparent px-3 py-2 text-[16px] text-ink outline-none placeholder:text-ink-soft"
+            placeholder="Colle ici la sauvegarde copiée…"
+            className="w-full rounded-xl border border-line bg-transparent p-3 text-[16px] text-ink outline-none focus:border-ink-soft"
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => importText(pasted)} className={btn}>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => importText(pasted)}
+              disabled={pasted.trim() === ''}
+              className={btn}
+            >
               Importer le texte
             </button>
-            <label className={btn + ' cursor-pointer'}>
+            <label className={`${btn} cursor-pointer`}>
               Choisir un fichier
               <input
                 type="file"
                 accept=".json,application/json,text/plain"
-                className="hidden"
-                onChange={(e) => void onFile(e.target.files?.[0])}
+                onChange={onFile}
+                className="sr-only"
               />
             </label>
           </div>
         </div>
       )}
 
-      {msg && <p className="mt-3 text-[13px] text-ink-soft">{msg}</p>}
+      {msg && <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{msg}</p>}
     </section>
   )
 }
